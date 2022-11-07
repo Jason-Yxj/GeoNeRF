@@ -12,7 +12,7 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
-                "--config", "configs/config_scannet.txt",
+                "--config", "configs/config_scannet_710.txt",
                 "--eval",
                 "--use_depth",
             ]
