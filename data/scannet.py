@@ -173,6 +173,16 @@ class Scannet_Dataset(Dataset):
             img_dir = os.path.join(self.root_dir, scan, self.imgs_folder_name)
             img_files = os.listdir(img_dir)
             img_files.sort(key=lambda x: int(x[:-4]))
+
+            all_id = np.arange(len(img_files))
+            all_id = all_id[::2]
+            for i in self.test_id:
+                if i not in all_id:
+                    all_id = np.append(all_id, i)
+            all_id.sort()
+            img_files = np.array(img_files)
+            img_files = img_files[all_id]
+
             self.image_paths[scan] = [os.path.join(img_dir, f) for f in img_files]
             # self.depth_paths[scan] = sorted(
             #     glob.glob(os.path.join(self.root_dir, scan, self.depths_folder_name, "*"))
@@ -180,6 +190,10 @@ class Scannet_Dataset(Dataset):
             depth_dir = os.path.join(self.root_dir, scan, self.depths_folder_name)
             depth_files = os.listdir(depth_dir)
             depth_files.sort(key=lambda x: int(x[:-4]))
+            
+            depth_files = np.array(depth_files)
+            depth_files = depth_files[all_id]
+
             self.depth_paths[scan] = [os.path.join(depth_dir, f) for f in depth_files]
 
             # poses_bounds = np.load(
@@ -193,7 +207,8 @@ class Scannet_Dataset(Dataset):
             else:
                 folder = 'build'
             f = h5py.File(os.path.join(self.root_dir, scan, folder, 'poses.h5'), 'r')
-            poses = f['c2w'][:]  # (N_images, 4, 4)
+            poses = f['c2w'][all_id]  # (N_images, 4, 4)
+            K = f['image_K'][all_id]
             bd = [[0.5, 6.0]]
             bounds = np.tile(bd, (len(self.image_paths[scan]), 1))  # (N_images, 2) 
 
@@ -222,7 +237,9 @@ class Scannet_Dataset(Dataset):
 
             num_viewpoint = len(self.image_paths[scan])
             # val_ids = [idx for idx in range(0, num_viewpoint, 8)]
-            val_ids = self.test_id
+            val_ids = []
+            for id in self.test_id:
+                val_ids.append(np.where(all_id == id)[0][0])
 
             self.id_list[scan] = []
             self.closest_idxs[scan] = []
@@ -271,7 +288,7 @@ class Scannet_Dataset(Dataset):
                 self.w2cs[scan].append(w2c)
 
                 # intrinsic = np.array([[focal[0], 0, w / 2], [0, focal[1], h / 2], [0, 0, 1]]).astype('float32')
-                intrinsic = f['image_K'][idx]
+                intrinsic = K[idx]
                 self.intrinsics[scan].append(intrinsic)
 
     def read_depth(self, filename, far_bound, noisy_factor=1.0):
