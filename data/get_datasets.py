@@ -26,43 +26,53 @@ import numpy as np
 from data.llff import LLFF_Dataset
 from data.dtu import DTU_Dataset
 from data.nerf import NeRF_Dataset
+from data.scannet import Scannet_Dataset
 
 def get_training_dataset(args, downsample=1.0):
     train_datasets = [
-        DTU_Dataset(
-            original_root_dir=args.dtu_path,
-            preprocessed_root_dir=args.dtu_pre_path,
+        # DTU_Dataset(
+        #     original_root_dir=args.dtu_path,
+        #     preprocessed_root_dir=args.dtu_pre_path,
+        #     split="train",
+        #     max_len=-1,
+        #     downSample=downsample,
+        #     nb_views=args.nb_views,
+        # ),
+        # LLFF_Dataset(
+        #     root_dir=args.ibrnet1_path,
+        #     split="train",
+        #     max_len=-1,
+        #     downSample=downsample,
+        #     nb_views=args.nb_views,
+        #     imgs_folder_name="images",
+        # ),
+        # LLFF_Dataset(
+        #     root_dir=args.ibrnet2_path,
+        #     split="train",
+        #     max_len=-1,
+        #     downSample=downsample,
+        #     nb_views=args.nb_views,
+        #     imgs_folder_name="images",
+        # ),
+        # LLFF_Dataset(
+        #     root_dir=args.llff_path,
+        #     split="train",
+        #     max_len=-1,
+        #     downSample=downsample,
+        #     nb_views=args.nb_views,
+        #     imgs_folder_name="images_4",
+        # ),
+        Scannet_Dataset(
+            root_dir=args.scan_path,
             split="train",
             max_len=-1,
             downSample=downsample,
             nb_views=args.nb_views,
-        ),
-        LLFF_Dataset(
-            root_dir=args.ibrnet1_path,
-            split="train",
-            max_len=-1,
-            downSample=downsample,
-            nb_views=args.nb_views,
-            imgs_folder_name="images",
-        ),
-        LLFF_Dataset(
-            root_dir=args.ibrnet2_path,
-            split="train",
-            max_len=-1,
-            downSample=downsample,
-            nb_views=args.nb_views,
-            imgs_folder_name="images",
-        ),
-        LLFF_Dataset(
-            root_dir=args.llff_path,
-            split="train",
-            max_len=-1,
-            downSample=downsample,
-            nb_views=args.nb_views,
-            imgs_folder_name="images_4",
+            imgs_folder_name="image",
         ),
     ]
-    weights = [0.5, 0.22, 0.12, 0.16]
+    # weights = [0.5, 0.22, 0.12, 0.16]
+    weights = [1.0]
 
     train_weights_samples = []
     for dataset, weight in zip(train_datasets, weights):
@@ -107,6 +117,18 @@ def get_finetuning_dataset(args, downsample=1.0):
             nb_views=args.nb_views,
             scene=args.scene,
         )
+    elif args.dataset_name == "scannet":
+        train_dataset = Scannet_Dataset(
+            root_dir=args.scan_path,
+            split="train",
+            max_len=-1,
+            downSample=downsample,
+            nb_views=args.nb_views,
+            scene=args.scene,
+            imgs_folder_name="build/image",
+            depths_folder_name="build/depth",
+            test_id = args.test_id,
+        )
 
     train_sampler = None
 
@@ -148,5 +170,16 @@ def get_validation_dataset(args, downsample=1.0):
             nb_views=args.nb_views,
             scene=args.scene,
         )
+    elif args.dataset_name == "scannet":
+        val_dataset = Scannet_Dataset(
+            root_dir=args.scan_test_path if not args.scan_test_path is None else args.scan_path,
+            split="val",
+            max_len=max_len,
+            downSample=downsample,
+            nb_views=args.nb_views,
+            scene=args.scene,
+            imgs_folder_name="build/image",
+            test_id = args.test_id,
+        )   
 
     return val_dataset

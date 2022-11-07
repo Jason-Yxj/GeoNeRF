@@ -324,6 +324,7 @@ class GeoNeRF(LightningModule):
             "val_depth_loss_r",
             "val_abs_err",
             "mask_sum",
+            "render_time"
         ] + [f"val_acc_{i}mm" for i in self.eval_metric]
         log = {}
         log = init_log(log, log_keys)
@@ -355,6 +356,9 @@ class GeoNeRF(LightningModule):
                 )
 
             unpre_imgs = self.unpreprocess(batch["images"])
+
+            torch.cuda.synchronize()
+            start = time.time()
 
             rendered_rgb, rendered_depth = [], []
             for chunk_idx in range(
@@ -394,6 +398,9 @@ class GeoNeRF(LightningModule):
                 torch.cat(rendered_rgb).reshape(H, W, 3).permute(2, 0, 1), 0, 1
             )
             rendered_depth = torch.cat(rendered_depth).reshape(H, W)
+
+            torch.cuda.synchronize()
+            log["render_time"] = (time.time() - start)/nb_views
 
             ## Check if there is any ground truth depth information for the dataset
             depth_available = batch["depths_h"].sum() > 0
@@ -469,12 +476,19 @@ class GeoNeRF(LightningModule):
                 exist_ok=True,
             )
             imageio.imwrite(
-                f"{self.hparams.logdir}/{self.hparams.dataset_name}/{self.hparams.expname}/rendered_results/{self.wr_cntr:03d}.png",
+                f"{self.hparams.logdir}/{self.hparams.dataset_name}/{self.hparams.expname}/rendered_results/{self.wr_cntr:03d}_render.png",
                 (
                     rendered_rgb.detach().permute(1, 2, 0).clip(0.0, 1.0).cpu().numpy()
                     * 255
                 ).astype("uint8"),
             )
+            imageio.imwrite(
+                f"{self.hparams.logdir}/{self.hparams.dataset_name}/{self.hparams.expname}/rendered_results/{self.wr_cntr:03d}_gt.png",
+                (
+                    unpre_imgs[:, -1].clip(0, 1).permute(2, 0, 3, 1).reshape(H, -1, 3).numpy()
+                    * 255
+                ).astype("uint8"),
+            )            
 
             os.makedirs(
                 f"{self.hparams.logdir}/{self.hparams.dataset_name}/{self.hparams.expname}/evaluation/",
@@ -491,11 +505,12 @@ class GeoNeRF(LightningModule):
         return log
 
     def validation_epoch_end(self, outputs):
-        mean_psnr = torch.stack([x["val_psnr"] for x in outputs]).mean()
-        mean_ssim = np.stack([x["val_ssim"] for x in outputs]).mean()
-        mean_lpips = np.stack([x["val_lpips"] for x in outputs]).mean()
+        mean_psnr = np.nanmean(torch.stack([x["val_psnr"] for x in outputs]))
+        mean_ssim =np.nanmean(np.stack([x["val_ssim"] for x in outputs]))
+        mean_lpips = np.nanmean(np.stack([x["val_lpips"] for x in outputs]))
+        mean_render_time = np.nanmean(np.stack([x["render_time"] for x in outputs]))
         mask_sum = torch.stack([x["mask_sum"] for x in outputs]).sum()
-        mean_d_loss_r = torch.stack([x["val_depth_loss_r"] for x in outputs]).mean()
+        mean_d_loss_r = np.nanmean(torch.stack([x["val_depth_loss_r"] for x in outputs]))
         mean_abs_err = torch.stack([x["val_abs_err"] for x in outputs]).sum() / mask_sum
         mean_acc_1mm = (
             torch.stack([x[f"val_acc_{self.eval_metric[0]}mm"] for x in outputs]).sum()
@@ -513,6 +528,7 @@ class GeoNeRF(LightningModule):
         self.log("val/PSNR", mean_psnr, prog_bar=False)
         self.log("val/SSIM", mean_ssim, prog_bar=False)
         self.log("val/LPIPS", mean_lpips, prog_bar=False)
+        self.log("val/TIMES", mean_render_time, prog_bar=False)
         if mask_sum > 0:
             self.log("val/d_loss_r", mean_d_loss_r, prog_bar=False)
             self.log("val/abs_err", mean_abs_err, prog_bar=False)
@@ -526,7 +542,8 @@ class GeoNeRF(LightningModule):
         ) as metric_file:
             metric_file.write(f"PSNR: {mean_psnr}\n")
             metric_file.write(f"SSIM: {mean_ssim}\n")
-            metric_file.write(f"LPIPS: {mean_lpips}")
+            metric_file.write(f"LPIPS: {mean_lpips}\n")
+            metric_file.write(f"TIMES: {mean_render_time}")
 
         return
 

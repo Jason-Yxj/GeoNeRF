@@ -26,7 +26,9 @@ def config_parser():
     parser.add_argument("--config", is_config_file=True, help="Config file path")
 
     # Datasets options
-    parser.add_argument("--dataset_name", type=str, default="llff", choices=["llff", "nerf", "dtu"],)
+    parser.add_argument("--dataset_name", type=str, default="llff", choices=["llff", "nerf", "dtu", "scannet"],)
+    parser.add_argument("--scan_path", type=str, help="Path to scannet dataset")
+    parser.add_argument("--scan_test_path", type=str, help="Path to scannet dataset")
     parser.add_argument("--llff_path", type=str, help="Path to llff dataset")
     parser.add_argument("--llff_test_path", type=str, help="Path to llff dataset")
     parser.add_argument("--dtu_path", type=str, help="Path to dtu dataset")
@@ -48,6 +50,7 @@ def config_parser():
     parser.add_argument("--chunk", type=int, default=4096, help="Number of rays rendered in parallel")
     parser.add_argument("--nb_coarse", type=int, default=96, help="Number of coarse samples per ray")
     parser.add_argument("--nb_fine", type=int, default=32, help="Number of additional fine samples per ray",)
+    parser.add_argument("--test_id", type=int, default=[], nargs='+', help="")
 
     # Other options
     parser.add_argument("--expname", type=str, help="Experiment name")

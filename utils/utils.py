@@ -556,6 +556,12 @@ def read_pfm(filename):
     file.close()
     return data, scale
 
+def read_depth_im(filepath):
+    depth_im = cv2.imread(filepath, -1).astype(np.float32)
+    depth_im /= 1000
+    # depth_im[depth_im > 8.0] = 0
+    # depth_im[depth_im < 0.3] = 0
+    return depth_im
 
 def homo_warp(src_feat, proj_mat, depth_values, src_grid=None, pad=0):
     if src_grid == None:
