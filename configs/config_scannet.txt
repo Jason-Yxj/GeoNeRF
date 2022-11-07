@@ -1,13 +1,13 @@
 ### INPUT
-expname = scene0710_eval
+expname = scene0781_eval
 logdir = /root/tf-logs/
 nb_views = 9  #### Set to 7 for fine-tuning
 
 ## dataset
 dataset_name = scannet
 scan_path = /root/autodl-tmp/scans_test_processed
-scene = scene0710_00
-test_id = [510, 560, 949, 966, 979, 1377, 1496, 1540]
+scene = scene0781_00
+test_id = [300, 981, 1157, 1272, 1700, 1874, 2114, 2194]
 
 ### TESTING
 chunk = 4096  ### Reduce it to save memory
