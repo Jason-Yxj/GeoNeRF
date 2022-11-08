@@ -1,0 +1,17 @@
+### INPUT
+expname = scene0781_ft
+logdir = /root/tf-logs/
+nb_views = 9  #### Set to 7 for fine-tuning
+
+## dataset
+dataset_name = scannet
+scan_path = /root/autodl-tmp/scans_test_processed
+scene = scene0781_00
+test_id = [300, 981, 1157, 1272, 1700, 1874, 2114, 2194]
+
+### TESTING
+chunk = 4096  ### Reduce it to save memory
+
+### TRAINING
+num_steps = 2000
+lrate = 0.0002
